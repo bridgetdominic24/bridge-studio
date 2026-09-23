@@ -505,7 +505,7 @@
   let pendingFile = null; // { name, content }
 
   // ─── EDGE FUNCTION URL ────────────────────────────────────────────────────
-  const EDGE_FN_URL = `${SUPABASE_URL}/functions/v1/orchestrate`;
+  const EDGE_FN_URL = `${SUPABASE_URL}/functions/v1/orchestrated`;
 
   // ─── AUTH ─────────────────────────────────────────────────────────────────
   async function init() {
@@ -786,7 +786,7 @@
       // AI messages come in via realtime subscription
     } catch (e) {
       removeTypingAll();
-      renderError('System', e.message);
+      renderError('System', e.message + ' | URL: ' + EDGE_FN_URL + ' | Origin: ' + location.origin);
     } finally {
       isSending = false;
       btn.disabled = false;
