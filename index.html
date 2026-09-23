@@ -1016,6 +1016,7 @@
 
   // ─── MESSAGES ─────────────────────────────────────────────────────────────
   const renderedIds = new Set();
+  const messageStore = new Map(); // id -> {author, content}
 
   async function loadMessages() {
     const { data: messages } = await sb
@@ -1103,11 +1104,12 @@
     const authorName = msg.author === 'user' ? 'You' : msg.author === 'claude' ? 'Claude' : msg.author === 'gpt' ? 'GPT' : msg.author;
     const time = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
+    messageStore.set(msg.id, { author: authorName, content: msg.content });
     el.innerHTML = `
       <div class="message-author">${authorName}</div>
       <div class="message-bubble">
         ${escapeHtml(msg.content)}
-        <button class="reply-btn" onclick="quoteMessage(${JSON.stringify(authorName)}, ${JSON.stringify(msg.content)})">↩ reply</button>
+        <button class="reply-btn" onclick="quoteMessage('${msg.id}')">↩ reply</button>
       </div>
       <div class="message-time">${time}</div>
     `;
@@ -1328,9 +1330,11 @@
   }
 
   // ─── REPLY / QUOTE ────────────────────────────────────────────────────────
-  function quoteMessage(author, content) {
-    const preview = content.length > 60 ? content.slice(0, 60) + '…' : content;
-    const quote = `> @${author}: "${preview}"\n\n`;
+  function quoteMessage(id) {
+    const msg = messageStore.get(id);
+    if (!msg) return;
+    const preview = msg.content.replace(/\n/g, ' ').slice(0, 60) + (msg.content.length > 60 ? '…' : '');
+    const quote = `> @${msg.author}: "${preview}"\n\n`;
     const input = document.getElementById('message-input');
     input.value = quote + input.value;
     input.focus();
