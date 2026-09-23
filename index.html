@@ -18,6 +18,7 @@
       --user: #60a5fa;
       --accent: #7c3aed;
       --radius: 12px;
+      --sidebar-w: 240px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -131,37 +132,125 @@
     .error-msg { color: #f87171; font-size: 13px; text-align: center; }
     .info-msg { color: var(--gpt); font-size: 13px; text-align: center; }
 
-    /* KEYS SCREEN */
-    #keys-screen {
-      display: none;
-      flex: 1;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      gap: 16px;
-    }
-
-    .keys-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 28px 24px;
-      width: 100%;
-      max-width: 380px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
-    .keys-card h2 { font-size: 18px; font-weight: 600; }
-    .keys-card p { font-size: 13px; color: var(--text-dim); line-height: 1.5; }
-    .keys-card label { font-size: 13px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 6px; }
-
     /* CHAT SCREEN */
     #chat-screen {
       display: none;
+      flex-direction: row;
+      height: 100dvh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* SIDEBAR */
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: var(--sidebar-w);
+      background: #0f0f13;
+      border-right: 1px solid var(--border);
+      display: flex;
       flex-direction: column;
+      z-index: 200;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+    }
+
+    #sidebar.open { transform: translateX(0); }
+
+    @media (min-width: 600px) {
+      #sidebar.pinned {
+        position: relative;
+        transform: translateX(0);
+        flex-shrink: 0;
+      }
+
+      #sidebar.pinned + #sidebar-backdrop { display: none; }
+    }
+
+    #sidebar-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 199;
+    }
+
+    #sidebar-backdrop.visible { display: block; }
+
+    .sidebar-header {
+      padding: 16px 14px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .new-chat-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 10px;
+      width: auto;
+      transition: opacity 0.2s;
+    }
+
+    .new-chat-btn:hover { opacity: 0.85; }
+
+    #project-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .project-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background 0.15s;
+    }
+
+    .project-item:hover { background: #1a1a22; }
+
+    .project-item.active {
+      background: #2e2e3e;
+      border-left-color: var(--accent);
+    }
+
+    .project-item-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .project-item-time {
+      font-size: 11px;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+
+    /* MAIN CHAT AREA */
+    #chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
       height: 100dvh;
     }
 
@@ -172,32 +261,34 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      flex-shrink: 0;
     }
 
-    .project-name { font-size: 16px; font-weight: 700; }
-
-    .ai-badges { display: flex; gap: 6px; margin-top: 4px; }
-
-    .badge {
-      font-size: 11px;
-      font-weight: 600;
-      padding: 3px 8px;
-      border-radius: 100px;
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
     }
 
-    .badge.claude { background: #3b1f7a; color: var(--claude); }
-    .badge.gpt { background: #0f3d2e; color: var(--gpt); }
-
-    .sign-out-btn {
+    .hamburger-btn {
       background: none;
+      border: none;
       color: var(--text-dim);
-      font-size: 12px;
-      font-weight: 500;
-      padding: 6px 10px;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 0;
       width: auto;
-      border: 1px solid var(--border);
-      border-radius: 6px;
+      line-height: 1;
+      flex-shrink: 0;
+      transition: color 0.15s;
     }
+
+    .hamburger-btn:hover { color: var(--text); opacity: 1; }
+
+    .header-info { min-width: 0; }
+
+    .project-name { font-size: 16px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
     .team-row {
       display: flex;
@@ -212,6 +303,18 @@
     .team-dot.claude { background: var(--claude); }
     .team-dot.gpt { background: var(--gpt); }
     .team-dot.user { background: var(--user); }
+
+    .sign-out-btn {
+      background: none;
+      color: var(--text-dim);
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 10px;
+      width: auto;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
 
     /* File upload */
     #file-input { display: none; }
@@ -346,6 +449,7 @@
       display: flex;
       gap: 10px;
       align-items: flex-end;
+      flex-shrink: 0;
     }
 
     #message-input {
@@ -374,6 +478,7 @@
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
+      flex-shrink: 0;
     }
 
     .hint-chip {
@@ -434,49 +539,69 @@
 
 <!-- CHAT SCREEN -->
 <div id="chat-screen">
-  <header>
-    <div>
-      <div class="project-name" id="project-name">Bridge Studio</div>
-      <div class="team-row">
-        <span class="team-dot claude"></span> Claude
-        <span class="team-dot gpt"></span> GPT
-        <span class="team-dot user"></span> Bridget
+
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Chats</span>
+      <button class="new-chat-btn" onclick="createNewChat()">+ New chat</button>
+    </div>
+    <div id="project-list"></div>
+  </div>
+
+  <!-- BACKDROP for mobile -->
+  <div id="sidebar-backdrop" onclick="closeSidebar()"></div>
+
+  <!-- MAIN AREA -->
+  <div id="chat-main">
+    <header>
+      <div class="header-left">
+        <button class="hamburger-btn" onclick="toggleSidebar()" title="Open chats">☰</button>
+        <div class="header-info">
+          <div class="project-name" id="project-name">Bridge Studio</div>
+          <div class="team-row">
+            <span class="team-dot claude"></span> Claude
+            <span class="team-dot gpt"></span> GPT
+            <span class="team-dot user"></span> Bridget
+          </div>
+        </div>
+      </div>
+      <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+    </header>
+
+    <input type="file" id="file-input" accept=".txt,.md,.js,.ts,.json,.html,.css,.py,.swift,.kt,.java,.xml,.csv,.sql" onchange="handleFileSelect(event)" />
+
+    <div id="messages">
+      <div class="empty-state" id="empty-state">
+        <div class="emoji">🎵</div>
+        <h3>Bridge Studio</h3>
+        <p>Your AI team is here.<br/>Type a message or use the chips below.</p>
       </div>
     </div>
-    <button class="sign-out-btn" onclick="signOut()">Sign out</button>
-  </header>
-  <input type="file" id="file-input" accept=".txt,.md,.js,.ts,.json,.html,.css,.py,.swift,.kt,.java,.xml,.csv,.sql" onchange="handleFileSelect(event)" />
 
-  <div id="messages">
-    <div class="empty-state" id="empty-state">
-      <div class="emoji">🎵</div>
-      <h3>Bridge Studio</h3>
-      <p>Your AI team is here.<br/>Type a message or use the chips below.</p>
+    <div class="hints">
+      <button class="hint-chip" onclick="insertHint('@claude ')">@claude</button>
+      <button class="hint-chip" onclick="insertHint('@gpt ')">@gpt</button>
+      <button class="hint-chip" onclick="insertHint('@both ')">@both</button>
+      <button class="hint-chip" onclick="insertHint('@debate ')">@debate</button>
     </div>
-  </div>
 
-  <div class="hints">
-    <button class="hint-chip" onclick="insertHint('@claude ')">@claude</button>
-    <button class="hint-chip" onclick="insertHint('@gpt ')">@gpt</button>
-    <button class="hint-chip" onclick="insertHint('@both ')">@both</button>
-    <button class="hint-chip" onclick="insertHint('@debate ')">@debate</button>
-  </div>
+    <div class="file-preview" id="file-preview">
+      <span>📎 <span class="file-preview-name" id="file-preview-name"></span></span>
+      <button class="file-remove" onclick="removeFile()">✕</button>
+    </div>
 
-  <div class="file-preview" id="file-preview">
-    <span>📎 <span class="file-preview-name" id="file-preview-name"></span></span>
-    <button class="file-remove" onclick="removeFile()">✕</button>
-  </div>
-
-  <div id="input-area">
-    <button class="attach-btn" id="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach file">📎</button>
-    <textarea
-      id="message-input"
-      placeholder="Message your AI team..."
-      rows="1"
-      onkeydown="handleKeyDown(event)"
-      oninput="autoResize(this)"
-    ></textarea>
-    <button id="send-btn" onclick="sendMessage()">↑</button>
+    <div id="input-area">
+      <button class="attach-btn" id="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach file">📎</button>
+      <textarea
+        id="message-input"
+        placeholder="Message your AI team..."
+        rows="1"
+        onkeydown="handleKeyDown(event)"
+        oninput="autoResize(this)"
+      ></textarea>
+      <button id="send-btn" onclick="sendMessage()">↑</button>
+    </div>
   </div>
 </div>
 
@@ -507,6 +632,149 @@
   // ─── EDGE FUNCTION URL ────────────────────────────────────────────────────
   const EDGE_FN_URL = `${SUPABASE_URL}/functions/v1/orchestrated`;
 
+  // ─── SIDEBAR ──────────────────────────────────────────────────────────────
+  let sidebarPinned = false;
+
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const isOpen = sidebar.classList.contains('open') || sidebar.classList.contains('pinned');
+
+    if (isOpen) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  }
+
+  function openSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    const isDesktop = window.innerWidth >= 600;
+
+    sidebar.classList.add('open');
+    if (isDesktop) {
+      sidebar.classList.add('pinned');
+    } else {
+      backdrop.classList.add('visible');
+    }
+  }
+
+  function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('sidebar-backdrop');
+    sidebar.classList.remove('open', 'pinned');
+    backdrop.classList.remove('visible');
+  }
+
+  async function loadProjectList() {
+    if (!currentUser) return;
+    const { data: projects } = await sb
+      .from('projects')
+      .select('*')
+      .eq('owner_id', currentUser.id)
+      .order('updated_at', { ascending: false });
+
+    const list = document.getElementById('project-list');
+    list.innerHTML = '';
+
+    if (!projects || projects.length === 0) return;
+
+    projects.forEach(p => {
+      const item = document.createElement('div');
+      item.classList.add('project-item');
+      if (currentProject && p.id === currentProject.id) {
+        item.classList.add('active');
+      }
+      item.dataset.projectId = p.id;
+
+      const dateStr = p.created_at
+        ? new Date(p.created_at).toLocaleDateString([], { month: 'short', day: 'numeric' })
+        : '';
+
+      item.innerHTML = `
+        <div class="project-item-name">${escapeHtml(p.name)}</div>
+        <div class="project-item-time">${dateStr}</div>
+      `;
+      item.onclick = () => switchToProject(p);
+      list.appendChild(item);
+    });
+  }
+
+  async function createNewChat() {
+    const name = prompt('Chat name:', 'New Chat');
+    if (!name || !name.trim()) return;
+
+    const { data: newProject, error } = await sb
+      .from('projects')
+      .insert({ owner_id: currentUser.id, name: name.trim() })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Failed to create project:', error);
+      return;
+    }
+
+    // Seed memories for the new project
+    await sb.from('memories').insert([
+      {
+        project_id: newProject.id,
+        owner: 'shared',
+        content: `Project: ${name.trim()} — a new Bridge Studio chat. Bridge Studio is our shared AI workspace — Claude and GPT collaborate freely, no fixed roles.`,
+      },
+      {
+        project_id: newProject.id,
+        owner: 'claude',
+        content: "I am Claude, collaborating on this project. I contribute wherever I'm most useful — design, code, critique, story, mechanics.",
+      },
+      {
+        project_id: newProject.id,
+        owner: 'gpt',
+        content: "I am GPT, collaborating on this project. I contribute wherever I'm most useful.",
+      },
+    ]);
+
+    await switchToProject(newProject);
+    await loadProjectList();
+  }
+
+  async function switchToProject(project) {
+    if (currentProject && currentProject.id === project.id) {
+      closeSidebar();
+      return;
+    }
+
+    // Unsubscribe from old channel
+    if (realtimeChannel) {
+      await sb.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    // Clear rendered state
+    renderedIds.clear();
+    const messagesEl = document.getElementById('messages');
+    messagesEl.innerHTML = `
+      <div class="empty-state" id="empty-state">
+        <div class="emoji">🎵</div>
+        <h3>Bridge Studio</h3>
+        <p>Your AI team is here.<br/>Type a message or use the chips below.</p>
+      </div>
+    `;
+
+    currentProject = project;
+    document.getElementById('project-name').textContent = project.name;
+
+    // Update active highlight in list
+    document.querySelectorAll('.project-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.projectId === String(project.id));
+    });
+
+    await loadMessages();
+    subscribeToMessages();
+    closeSidebar();
+  }
+
   // ─── AUTH ─────────────────────────────────────────────────────────────────
   async function init() {
     const { data: { session } } = await sb.auth.getSession();
@@ -521,7 +789,6 @@
       const el = document.getElementById(s);
       if (!el) return;
       el.style.display = s === id ? 'flex' : 'none';
-      if (s === id && s === 'chat-screen') el.style.flexDirection = 'column';
     });
   }
 
@@ -586,10 +853,17 @@
   }
 
   async function signOut() {
+    if (realtimeChannel) {
+      await sb.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
     await sb.auth.signOut();
     currentUser = null;
     currentProject = null;
+    renderedIds.clear();
     document.getElementById('messages').innerHTML = '';
+    document.getElementById('project-list').innerHTML = '';
+    closeSidebar();
     showScreen('auth-screen');
   }
 
@@ -597,7 +871,12 @@
   async function loadChat() {
     showScreen('chat-screen');
 
-    let { data: projects, error } = await sb.from('projects').select('*').limit(1);
+    let { data: projects } = await sb
+      .from('projects')
+      .select('*')
+      .eq('owner_id', currentUser.id)
+      .order('updated_at', { ascending: false })
+      .limit(1);
 
     if (!projects || projects.length === 0) {
       const { data: newProject, error: projErr } = await sb
@@ -635,6 +914,7 @@
     }
 
     document.getElementById('project-name').textContent = currentProject.name;
+    await loadProjectList();
     await loadMessages();
     subscribeToMessages();
   }
@@ -667,17 +947,35 @@
       .limit(20);
 
     console.log('[poll] got', messages?.length, 'messages, error:', error);
-    if (!messages) return;
+    if (!messages) return false;
+
+    // Remove temp user message bubbles now that DB has the real ones
+    document.querySelectorAll('[data-temp="true"]').forEach(el => el.remove());
+
     let gotNew = false;
     messages.forEach(msg => {
-      console.log('[poll] msg:', msg.id, msg.author, msg.content?.slice(0, 40), 'rendered:', renderedIds.has(msg.id));
-      if (!renderedIds.has(msg.id) && msg.author !== 'user') {
+      if (!renderedIds.has(msg.id)) {
         document.getElementById('empty-state')?.remove();
         renderMessage(msg);
         gotNew = true;
       }
     });
     if (gotNew) scrollToBottom();
+    return gotNew;
+  }
+
+  async function pollForNewMessages() {
+    // Initial 2s poll (existing behaviour)
+    await new Promise(r => setTimeout(r, 2000));
+    await fetchNewMessages();
+
+    // Then poll every 3s up to 5 more times
+    for (let i = 0; i < 5; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      const gotNew = await fetchNewMessages();
+      // If we got something new on this pass we can stop early
+      // (keep going anyway to catch any delayed second response)
+    }
   }
 
   let realtimeChannel = null;
@@ -774,15 +1072,18 @@
     // Display label if file attached
     const displayContent = fileToSend ? `${content}\n\n📎 ${fileToSend.name}` : content;
 
-    // Save + render user message (without file content — just show name)
-    const { data: userMsg } = await sb.from('messages').insert({
-      project_id: currentProject.id,
-      author: 'user',
-      content: displayContent,
-    }).select().single();
-
+    // Render user message locally immediately (Edge Function saves it to DB)
     document.getElementById('empty-state')?.remove();
-    if (userMsg) renderMessage(userMsg);
+    const tempEl = document.createElement('div');
+    tempEl.classList.add('message', 'user');
+    tempEl.dataset.temp = 'true';
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    tempEl.innerHTML = `
+      <div class="message-author">You</div>
+      <div class="message-bubble">${escapeHtml(displayContent)}</div>
+      <div class="message-time">${time}</div>
+    `;
+    document.getElementById('messages').appendChild(tempEl);
     scrollToBottom();
 
     // Determine who responds for typing indicators
@@ -813,9 +1114,8 @@
         const err = await res.json().catch(() => ({}));
         renderError('System', err.error || `Server error ${res.status}`);
       } else {
-        // Realtime should catch these, but poll as fallback after a short delay
-        await new Promise(r => setTimeout(r, 2000));
-        await fetchNewMessages();
+        // Poll for responses — initial 2s delay then 5 × 3s polls
+        pollForNewMessages();
       }
     } catch (e) {
       removeTypingAll();
