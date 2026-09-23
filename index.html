@@ -658,16 +658,19 @@
 
   async function fetchNewMessages() {
     // Poll for any messages we might have missed (fallback when Realtime fails)
-    const { data: messages } = await sb
+    console.log('[poll] fetching for project_id:', currentProject.id);
+    const { data: messages, error } = await sb
       .from('messages')
       .select('*')
       .eq('project_id', currentProject.id)
       .order('created_at', { ascending: true })
       .limit(20);
 
+    console.log('[poll] got', messages?.length, 'messages, error:', error);
     if (!messages) return;
     let gotNew = false;
     messages.forEach(msg => {
+      console.log('[poll] msg:', msg.id, msg.author, msg.content?.slice(0, 40), 'rendered:', renderedIds.has(msg.id));
       if (!renderedIds.has(msg.id) && msg.author !== 'user') {
         document.getElementById('empty-state')?.remove();
         renderMessage(msg);
@@ -811,7 +814,7 @@
         renderError('System', err.error || `Server error ${res.status}`);
       } else {
         // Realtime should catch these, but poll as fallback after a short delay
-        await new Promise(r => setTimeout(r, 500));
+        await new Promise(r => setTimeout(r, 2000));
         await fetchNewMessages();
       }
     } catch (e) {
