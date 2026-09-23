@@ -640,6 +640,8 @@
   }
 
   // ─── MESSAGES ─────────────────────────────────────────────────────────────
+  const renderedIds = new Set();
+
   async function loadMessages() {
     const { data: messages } = await sb
       .from('messages')
@@ -654,8 +656,31 @@
     scrollToBottom();
   }
 
+  async function fetchNewMessages() {
+    // Poll for any messages we might have missed (fallback when Realtime fails)
+    const { data: messages } = await sb
+      .from('messages')
+      .select('*')
+      .eq('project_id', currentProject.id)
+      .order('created_at', { ascending: true })
+      .limit(20);
+
+    if (!messages) return;
+    let gotNew = false;
+    messages.forEach(msg => {
+      if (!renderedIds.has(msg.id) && msg.author !== 'user') {
+        document.getElementById('empty-state')?.remove();
+        renderMessage(msg);
+        gotNew = true;
+      }
+    });
+    if (gotNew) scrollToBottom();
+  }
+
+  let realtimeChannel = null;
   function subscribeToMessages() {
-    sb.channel('room-' + currentProject.id)
+    if (realtimeChannel) return; // already subscribed
+    realtimeChannel = sb.channel('room-' + currentProject.id)
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
@@ -672,6 +697,8 @@
   }
 
   function renderMessage(msg) {
+    if (renderedIds.has(msg.id)) return; // skip duplicates
+    renderedIds.add(msg.id);
     const container = document.getElementById('messages');
     const el = document.createElement('div');
     el.classList.add('message', msg.author);
@@ -782,8 +809,11 @@
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         renderError('System', err.error || `Server error ${res.status}`);
+      } else {
+        // Realtime should catch these, but poll as fallback after a short delay
+        await new Promise(r => setTimeout(r, 500));
+        await fetchNewMessages();
       }
-      // AI messages come in via realtime subscription
     } catch (e) {
       removeTypingAll();
       renderError('System', e.message + ' | URL: ' + EDGE_FN_URL + ' | Origin: ' + location.origin);
