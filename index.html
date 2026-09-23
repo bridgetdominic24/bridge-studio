@@ -511,6 +511,87 @@
     .empty-state .emoji { font-size: 40px; }
     .empty-state h3 { font-size: 16px; color: var(--text); }
     .empty-state p { font-size: 13px; line-height: 1.5; }
+
+    /* MODE SWITCHER */
+    .mode-switcher {
+      display: flex;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .mode-btn {
+      background: none;
+      border: none;
+      border-radius: 0;
+      width: 36px;
+      height: 32px;
+      font-size: 14px;
+      padding: 0;
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .mode-btn:hover { background: var(--border); color: var(--text); opacity: 1; }
+    .mode-btn.active { background: var(--accent); color: white; }
+
+    /* PAUSED BADGE */
+    .paused-badge {
+      display: none;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 3px 8px;
+    }
+    .paused-badge.visible { display: flex; }
+
+    /* TOAST */
+    #toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(12px);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      color: var(--text);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 9999;
+      white-space: nowrap;
+      max-width: 90vw;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* REPLY BUTTON */
+    .message-bubble { position: relative; }
+    .reply-btn {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      opacity: 0;
+      font-size: 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 6px;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      color: var(--text-dim);
+      width: auto;
+    }
+    .message:hover .reply-btn { opacity: 1; }
+    .reply-btn:hover { color: var(--text); background: var(--border); opacity: 1; }
   </style>
 </head>
 <body>
@@ -566,8 +647,17 @@
           </div>
         </div>
       </div>
-      <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <span class="paused-badge" id="paused-badge">⏸ paused</span>
+        <div class="mode-switcher">
+          <button class="mode-btn active" data-mode="focused" onclick="setMode('focused')" title="Only you trigger responses">🎯</button>
+          <button class="mode-btn" data-mode="group" onclick="setMode('group')" title="One round of cross-talk">💬</button>
+          <button class="mode-btn" data-mode="chaos" onclick="setMode('chaos')" title="Infinite — AIs chat freely">🌀</button>
+        </div>
+        <button class="sign-out-btn" onclick="signOut()">Sign out</button>
+      </div>
     </header>
+    <div id="toast"></div>
 
     <input type="file" id="file-input" accept=".txt,.md,.js,.ts,.json,.html,.css,.py,.swift,.kt,.java,.xml,.csv,.sql" onchange="handleFileSelect(event)" />
 
@@ -628,6 +718,7 @@
   let isSignUp = false;
   let isSending = false;
   let pendingFile = null; // { name, content }
+  let toastTimer = null;
 
   // ─── EDGE FUNCTION URL ────────────────────────────────────────────────────
   const EDGE_FN_URL = `${SUPABASE_URL}/functions/v1/orchestrated`;
@@ -764,6 +855,10 @@
 
     currentProject = project;
     document.getElementById('project-name').textContent = project.name;
+
+    // Sync chat_mode UI from project
+    updateModeButtons(project.chat_mode || 'focused');
+    updatePausedBadge(project.auto_paused || false);
 
     // Update active highlight in list
     document.querySelectorAll('.project-item').forEach(el => {
@@ -1010,7 +1105,10 @@
 
     el.innerHTML = `
       <div class="message-author">${authorName}</div>
-      <div class="message-bubble">${escapeHtml(msg.content)}</div>
+      <div class="message-bubble">
+        ${escapeHtml(msg.content)}
+        <button class="reply-btn" onclick="quoteMessage(${JSON.stringify(authorName)}, ${JSON.stringify(msg.content)})">↩ reply</button>
+      </div>
       <div class="message-time">${time}</div>
     `;
     container.appendChild(el);
@@ -1069,6 +1167,22 @@
     const fileToSend = pendingFile;
     if (fileToSend) removeFile();
 
+    // Detect pause/resume commands and update local state
+    const lowerContent = content.toLowerCase().trim();
+    if (/\b(pause|sleep)\b/.test(lowerContent)) {
+      if (currentProject) {
+        currentProject.auto_paused = true;
+        updatePausedBadge(true);
+        sb.from('projects').update({ auto_paused: true }).eq('id', currentProject.id);
+      }
+    } else if (/\b(wake\s*up|resume)\b/.test(lowerContent)) {
+      if (currentProject) {
+        currentProject.auto_paused = false;
+        updatePausedBadge(false);
+        sb.from('projects').update({ auto_paused: false }).eq('id', currentProject.id);
+      }
+    }
+
     // Display label if file attached
     const displayContent = fileToSend ? `${content}\n\n📎 ${fileToSend.name}` : content;
 
@@ -1105,6 +1219,7 @@
           project_id: currentProject.id,
           content,
           file_content: fileToSend ? fileToSend.content : null,
+          chat_mode: currentProject.chat_mode || 'focused',
         }),
       });
 
@@ -1174,6 +1289,52 @@
     const input = document.getElementById('message-input');
     input.value = text;
     input.focus();
+  }
+
+  // ─── MODE SWITCHER ────────────────────────────────────────────────────────
+  async function setMode(mode) {
+    if (!currentProject) return;
+    currentProject.chat_mode = mode;
+    updateModeButtons(mode);
+
+    await sb.from('projects').update({ chat_mode: mode }).eq('id', currentProject.id);
+
+    if (mode === 'chaos') {
+      showToast('🌀 Chaos mode — Claude and GPT will chat on their own every 5 min');
+    } else if (mode === 'group') {
+      showToast('💬 Group mode — one round of cross-talk after your messages');
+    } else {
+      showToast('🎯 Focused — only you trigger responses');
+    }
+  }
+
+  function updateModeButtons(mode) {
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+  }
+
+  function updatePausedBadge(paused) {
+    document.getElementById('paused-badge').classList.toggle('visible', paused);
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  // ─── REPLY / QUOTE ────────────────────────────────────────────────────────
+  function quoteMessage(author, content) {
+    const preview = content.length > 60 ? content.slice(0, 60) + '…' : content;
+    const quote = `> @${author}: "${preview}"\n\n`;
+    const input = document.getElementById('message-input');
+    input.value = quote + input.value;
+    input.focus();
+    autoResize(input);
   }
 
   // ─── UTILS ────────────────────────────────────────────────────────────────
